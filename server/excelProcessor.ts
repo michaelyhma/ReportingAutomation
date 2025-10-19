@@ -74,18 +74,16 @@ export class ExcelProcessor {
       // Column A: Symbol
       ws[`A${rowNum}`] = { v: symbol, t: 's' };
       
-      // Column B: First Purchase Date formula - using legacy formula syntax
-      // Write the formula without implicit intersection
-      const dateFormula = `MINIFS(Realized!$K:$K,Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`;
+      // Column B: First Purchase Date formula
+      // Writing without curly braces - let Excel handle it
       ws[`B${rowNum}`] = {
-        f: dateFormula,
+        f: `MINIFS(Realized!$K:$K,Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`,
         t: 'd'
       };
       
-      // Column C: Initial Amount formula - using legacy formula syntax
-      const amountFormula = `SUMIFS(Realized!$P:$P,Realized!$K:$K,'Initial Purchase'!B${rowNum},Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`;
+      // Column C: Initial Amount formula
       ws[`C${rowNum}`] = {
-        f: amountFormula,
+        f: `SUMIFS(Realized!$P:$P,Realized!$K:$K,'Initial Purchase'!B${rowNum},Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`,
         t: 'n',
         z: '0.00'  // Number format for currency
       };
