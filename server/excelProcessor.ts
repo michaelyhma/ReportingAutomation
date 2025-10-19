@@ -1,7 +1,5 @@
-import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 import type { VintageResult } from "@shared/schema";
-
-const { Workbook } = ExcelJS;
 
 interface VintageData {
   vintageName: string;
@@ -48,48 +46,6 @@ export class ExcelProcessor {
   }
 
   /**
-   * Read Excel buffer and convert to JSON data
-   */
-  private static async readExcelBuffer(buffer: Buffer): Promise<any[]> {
-    const workbook = new Workbook();
-    await workbook.xlsx.load(buffer);
-    
-    // Get the first worksheet
-    const worksheet = workbook.worksheets[0];
-    if (!worksheet) {
-      throw new Error("Excel file has no sheets");
-    }
-
-    // Convert worksheet to JSON
-    const data: any[] = [];
-    let headers: string[] = [];
-    
-    worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) {
-        // First row is headers
-        headers = row.values as string[];
-        headers = headers.slice(1); // Remove first empty element
-      } else {
-        // Data rows
-        const rowData: any = {};
-        const values = row.values as any[];
-        if (values) {
-          values.forEach((value: any, index: number) => {
-            if (index > 0 && headers[index - 1]) {
-              rowData[headers[index - 1]] = value;
-            }
-          });
-        }
-        if (Object.keys(rowData).length > 0) {
-          data.push(rowData);
-        }
-      }
-    });
-
-    return data;
-  }
-
-  /**
    * Process Excel files and return data organized by vintage
    */
   static async processFiles(
@@ -97,8 +53,24 @@ export class ExcelProcessor {
     unrealizedBuffer: Buffer
   ): Promise<VintageData[]> {
     // Read the Excel files
-    const realizedData = await this.readExcelBuffer(realizedBuffer);
-    const unrealizedData = await this.readExcelBuffer(unrealizedBuffer);
+    const realizedWorkbook = XLSX.read(realizedBuffer, { type: "buffer" });
+    const unrealizedWorkbook = XLSX.read(unrealizedBuffer, { type: "buffer" });
+
+    // Get the first sheet from each workbook
+    const realizedSheetName = realizedWorkbook.SheetNames[0];
+    const unrealizedSheetName = unrealizedWorkbook.SheetNames[0];
+
+    if (!realizedSheetName) {
+      throw new Error("Realized Excel file has no sheets");
+    }
+
+    if (!unrealizedSheetName) {
+      throw new Error("Unrealized Excel file has no sheets");
+    }
+
+    // Convert sheets to JSON
+    const realizedData = XLSX.utils.sheet_to_json(realizedWorkbook.Sheets[realizedSheetName]);
+    const unrealizedData = XLSX.utils.sheet_to_json(unrealizedWorkbook.Sheets[unrealizedSheetName]);
 
     // Extract unique vintages from both files
     const realizedVintages = this.extractVintages(realizedData);
@@ -137,87 +109,67 @@ export class ExcelProcessor {
   }
 
   /**
-   * Generate an Excel file for a specific vintage using ExcelJS
+   * Generate an Excel file for a specific vintage
    */
   static async generateVintageExcel(vintageData: VintageData): Promise<Buffer> {
-    const workbook = new Workbook();
+    const workbook = XLSX.utils.book_new();
 
     // Create the Realized sheet
-    const realizedSheet = workbook.addWorksheet("Realized");
-    if (vintageData.realizedRows.length > 0) {
-      // Add headers
-      const headers = Object.keys(vintageData.realizedRows[0]);
-      realizedSheet.addRow(headers);
-      
-      // Add data rows
-      vintageData.realizedRows.forEach(row => {
-        const values = headers.map(header => row[header]);
-        realizedSheet.addRow(values);
-      });
-
-      // Add autofilter
-      realizedSheet.autoFilter = {
-        from: 'A1',
-        to: `${String.fromCharCode(65 + headers.length - 1)}1`
-      };
-    }
+    const realizedSheet = XLSX.utils.json_to_sheet(vintageData.realizedRows);
+    XLSX.utils.book_append_sheet(workbook, realizedSheet, "Realized");
 
     // Create the Unrealized sheet
-    const unrealizedSheet = workbook.addWorksheet("Unrealized");
-    if (vintageData.unrealizedRows.length > 0) {
-      // Add headers
-      const headers = Object.keys(vintageData.unrealizedRows[0]);
-      unrealizedSheet.addRow(headers);
-      
-      // Add data rows
-      vintageData.unrealizedRows.forEach(row => {
-        const values = headers.map(header => row[header]);
-        unrealizedSheet.addRow(values);
-      });
-
-      // Add autofilter
-      unrealizedSheet.autoFilter = {
-        from: 'A1',
-        to: `${String.fromCharCode(65 + headers.length - 1)}1`
-      };
-    }
+    const unrealizedSheet = XLSX.utils.json_to_sheet(vintageData.unrealizedRows);
+    XLSX.utils.book_append_sheet(workbook, unrealizedSheet, "Unrealized");
 
     // Create the Initial Purchase sheet with Excel formulas
-    const initialPurchaseSheet = workbook.addWorksheet("Initial Purchase");
+    const initialPurchaseSheet: XLSX.WorkSheet = {};
     
     // Add headers
-    initialPurchaseSheet.addRow(["Symbol", "First Purchase Date", "Initial Amount"]);
+    initialPurchaseSheet['A1'] = { v: 'Symbol', t: 's' };
+    initialPurchaseSheet['B1'] = { v: 'First Purchase Date', t: 's' };
+    initialPurchaseSheet['C1'] = { v: 'Initial Amount', t: 's' };
     
     // Get unique symbols and add them with formulas
     const uniqueSymbols = this.getUniqueSymbols(vintageData.realizedRows);
     uniqueSymbols.forEach((symbol, index) => {
       const rowNum = index + 2; // Excel rows are 1-indexed, +1 for header
       
-      // Add row with symbol and formulas
-      const row = initialPurchaseSheet.addRow([symbol, null, null]);
+      // Column A: Symbol
+      initialPurchaseSheet[`A${rowNum}`] = { v: symbol, t: 's' };
       
-      // Set First Purchase Date formula (column B)
-      // Using dollar signs for absolute column references
-      row.getCell(2).value = {
-        formula: `MINIFS(Realized!$K:$K,Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`
+      // Column B: First Purchase Date formula - wrapped in INDEX to prevent @ symbol
+      // INDEX returns a single value, preventing Excel from adding implicit intersection
+      initialPurchaseSheet[`B${rowNum}`] = {
+        f: `INDEX(MINIFS(Realized!K:K,Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY"),1)`,
+        t: 'd'
       };
       
-      // Set Initial Amount formula (column C)
-      row.getCell(3).value = {
-        formula: `SUMIFS(Realized!$P:$P,Realized!$K:$K,'Initial Purchase'!B${rowNum},Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`
+      // Column C: Initial Amount formula - wrapped in INDEX to prevent @ symbol  
+      initialPurchaseSheet[`C${rowNum}`] = {
+        f: `INDEX(SUMIFS(Realized!P:P,Realized!K:K,'Initial Purchase'!B${rowNum},Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY"),1)`,
+        t: 'n',
+        z: '0.00'  // Number format for currency
       };
     });
-
+    
+    // Set the sheet range
+    const endRow = uniqueSymbols.length + 1;
+    initialPurchaseSheet['!ref'] = `A1:C${endRow}`;
+    
     // Set column widths
-    initialPurchaseSheet.columns = [
-      { width: 15 }, // Symbol
-      { width: 20 }, // First Purchase Date
-      { width: 15 }  // Initial Amount
+    initialPurchaseSheet['!cols'] = [
+      { wch: 15 }, // Symbol
+      { wch: 20 }, // First Purchase Date
+      { wch: 15 }  // Initial Amount
     ];
 
+    // Add the Initial Purchase sheet to the workbook
+    XLSX.utils.book_append_sheet(workbook, initialPurchaseSheet, "Initial Purchase");
+
     // Generate buffer
-    const buffer = await workbook.xlsx.writeBuffer();
-    return buffer as Buffer;
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    return buffer;
   }
 
   /**
