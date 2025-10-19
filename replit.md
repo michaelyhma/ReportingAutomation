@@ -33,6 +33,12 @@ This application allows portfolio managers to upload two Excel files (realized a
   - API endpoints for file processing and download
 - Configured design system following professional financial dashboard guidelines
 
+### October 19, 2025 - Added Initial Purchase Sheet
+- Added "Initial Purchase" sheet to generated Excel files
+- Sheet displays unique tickers with first purchase date and initial amount
+- Uses Excel formulas (MINIFS and SUMIFS) for auditable calculations
+- Updated UI to reflect 3-sheet output structure
+
 ---
 
 ## User Preferences
@@ -210,6 +216,10 @@ Example Unrealized File:
 Each Vintage generates one Excel workbook with:
 - **Sheet 1 "Realized"**: All realized transaction rows for that Vintage
 - **Sheet 2 "Unrealized"**: All unrealized position rows for that Vintage
+- **Sheet 3 "Initial Purchase"**: Analysis sheet with Excel formulas showing:
+  - Symbol: Each unique ticker from the Realized sheet
+  - First Purchase Date: Formula using MINIFS to find earliest BUY date
+  - Initial Amount: Formula using SUMIFS to calculate amount spent on first purchase
 - **Filename**: `{VintageName}_Portfolio.xlsx` (e.g., "CQ1_Portfolio.xlsx")
 
 ---
