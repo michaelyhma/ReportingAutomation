@@ -59,53 +59,44 @@ export class ExcelProcessor {
     // Get unique symbols
     const uniqueSymbols = this.getUniqueSymbols(realizedRows);
     
-    // Create the data structure for Initial Purchase sheet
-    const initialPurchaseData: any[] = [];
+    // Create worksheet structure
+    const ws: XLSX.WorkSheet = {};
     
     // Add headers
-    const headers = ["Symbol", "First Purchase Date", "Initial Amount"];
+    ws['A1'] = { v: 'Symbol' };
+    ws['B1'] = { v: 'First Purchase Date' };
+    ws['C1'] = { v: 'Initial Amount' };
     
-    // For each unique symbol, we'll add formulas to calculate first purchase date and amount
+    // Add symbols and formulas for each row
     uniqueSymbols.forEach((symbol, index) => {
-      const rowNum = index + 2; // +2 because row 1 is headers
+      const rowNum = index + 2; // Excel rows are 1-indexed, +1 for header
       
-      initialPurchaseData.push({
-        Symbol: symbol,
-        "First Purchase Date": `=IFERROR(MINIFS(Realized!B:B,Realized!A:A,"${symbol}",Realized!C:C,"BUY"),"")`,
-        "Initial Amount": `=IFERROR(SUMIFS(Realized!F:F,Realized!A:A,"${symbol}",Realized!B:B,B${rowNum},Realized!C:C,"BUY"),0)`
-      });
+      // Column A: Symbol
+      ws[`A${rowNum}`] = { v: symbol };
+      
+      // Column B: First Purchase Date formula
+      // =MINIFS(Realized!$K:$K,Realized!$G:$G,'Initial Purchase'!A2,Realized!$M:$M,"BUY")
+      ws[`B${rowNum}`] = {
+        f: `MINIFS(Realized!$K:$K,Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`
+      };
+      
+      // Column C: Initial Amount formula
+      // =SUMIFS(Realized!$P:$P,Realized!$K:$K,'Initial Purchase'!B2,Realized!$G:$G,'Initial Purchase'!A2,Realized!$M:$M,"BUY")
+      ws[`C${rowNum}`] = {
+        f: `SUMIFS(Realized!$P:$P,Realized!$K:$K,'Initial Purchase'!B${rowNum},Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`
+      };
     });
-
-    // Create worksheet from data
-    const ws = XLSX.utils.json_to_sheet(initialPurchaseData);
+    
+    // Set the sheet range
+    const endRow = uniqueSymbols.length + 1;
+    ws['!ref'] = `A1:C${endRow}`;
     
     // Set column widths for better readability
-    const wscols = [
+    ws['!cols'] = [
       { wch: 15 }, // Symbol
       { wch: 20 }, // First Purchase Date  
       { wch: 15 }  // Initial Amount
     ];
-    ws['!cols'] = wscols;
-
-    // Format the date column (column B) and amount column (column C)
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-    
-    // Apply formulas to cells (XLSX library will handle the formula syntax)
-    for (let i = 0; i < uniqueSymbols.length; i++) {
-      const rowNum = i + 2;
-      
-      // First Purchase Date formula (column B)
-      const dateCell = XLSX.utils.encode_cell({ r: i + 1, c: 1 });
-      ws[dateCell] = {
-        f: `IFERROR(MINIFS(Realized!B:B,Realized!A:A,"${uniqueSymbols[i]}",Realized!C:C,"BUY"),"")`
-      };
-      
-      // Initial Amount formula (column C)
-      const amountCell = XLSX.utils.encode_cell({ r: i + 1, c: 2 });
-      ws[amountCell] = {
-        f: `IFERROR(SUMIFS(Realized!F:F,Realized!A:A,"${uniqueSymbols[i]}",Realized!B:B,B${rowNum},Realized!C:C,"BUY"),0)`
-      };
-    }
     
     return ws;
   }
