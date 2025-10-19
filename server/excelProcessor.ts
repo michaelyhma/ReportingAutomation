@@ -1,5 +1,7 @@
-import * as ExcelJS from "exceljs";
+import ExcelJS from "exceljs";
 import type { VintageResult } from "@shared/schema";
+
+const { Workbook } = ExcelJS;
 
 interface VintageData {
   vintageName: string;
@@ -49,7 +51,7 @@ export class ExcelProcessor {
    * Read Excel buffer and convert to JSON data
    */
   private static async readExcelBuffer(buffer: Buffer): Promise<any[]> {
-    const workbook = new ExcelJS.Workbook();
+    const workbook = new Workbook();
     await workbook.xlsx.load(buffer);
     
     // Get the first worksheet
@@ -138,7 +140,7 @@ export class ExcelProcessor {
    * Generate an Excel file for a specific vintage using ExcelJS
    */
   static async generateVintageExcel(vintageData: VintageData): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook();
+    const workbook = new Workbook();
 
     // Create the Realized sheet
     const realizedSheet = workbook.addWorksheet("Realized");
