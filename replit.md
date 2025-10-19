@@ -38,6 +38,7 @@ This application allows portfolio managers to upload two Excel files (realized a
 - Sheet displays unique tickers with first purchase date and initial amount
 - Uses Excel formulas (MINIFS and SUMIFS) for auditable calculations
 - Updated UI to reflect 3-sheet output structure
+- Switched from XLSX (SheetJS) to ExcelJS library to prevent @ symbol in formulas
 
 ---
 
@@ -67,12 +68,12 @@ This application allows portfolio managers to upload two Excel files (realized a
 - TanStack Query for data fetching
 - Shadcn UI components
 - Tailwind CSS for styling
-- XLSX (SheetJS) for Excel handling
+- ExcelJS for Excel handling
 
 **Backend**:
 - Express.js
 - Multer for file uploads
-- XLSX (SheetJS) for Excel processing
+- ExcelJS for Excel processing (replaced XLSX to prevent @ symbol in formulas)
 - In-memory storage for temporary file handling
 
 ### Directory Structure
@@ -268,7 +269,7 @@ Both servers run concurrently and are accessible at http://localhost:5000
 ## Dependencies
 
 ### Key Libraries
-- **xlsx**: SheetJS library for Excel file reading and writing
+- **exceljs**: Excel library for reading/writing with proper formula support (no @ symbol)
 - **multer**: File upload middleware for Express
 - **@tanstack/react-query**: Data fetching and state management
 - **wouter**: Lightweight routing for React
