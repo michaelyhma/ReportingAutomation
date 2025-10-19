@@ -76,12 +76,12 @@ export class ExcelProcessor {
     }
 
     // Combine all unique vintages
-    const allVintages = new Set([...realizedVintages, ...unrealizedVintages]);
+    const allVintages = new Set([...Array.from(realizedVintages), ...Array.from(unrealizedVintages)]);
 
     // Process each vintage
     const vintageDataArray: VintageData[] = [];
 
-    for (const vintageName of allVintages) {
+    for (const vintageName of Array.from(allVintages)) {
       const realizedRows = this.filterRowsByVintage(realizedSheet, vintageName);
       const unrealizedRows = this.filterRowsByVintage(
         unrealizedSheet,
