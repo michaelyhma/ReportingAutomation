@@ -133,6 +133,9 @@ export class ExcelProcessor {
       M: `Realized!$M$2:$M$${realizedDataEndRow}`,
       P: `Realized!$P$2:$P$${realizedDataEndRow}`,
     } as const;
+
+    const firstPurchaseFormula = (rowNum: number) =>
+      `IFERROR(AGGREGATE(15,6,(${realizedColRanges.K})/(((${realizedColRanges.G}='Initial Purchase'!A${rowNum})*(${realizedColRanges.M}="BUY"))),1),"")`;
     
     // Add headers
     initialPurchaseSheet['A1'] = { v: 'Symbol', t: 's' };
@@ -149,8 +152,9 @@ export class ExcelProcessor {
       
       // Column B: First Purchase Date formula
       initialPurchaseSheet[`B${rowNum}`] = {
-        f: `MINIFS(${realizedColRanges.K},${realizedColRanges.G},'Initial Purchase'!A${rowNum},${realizedColRanges.M},"BUY")`,
-        t: 'd'
+        f: firstPurchaseFormula(rowNum),
+        t: 'n',
+        z: 'mm/dd/yyyy'
       };
 
       // Column C: Initial Amount formula
