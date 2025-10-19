@@ -53,9 +53,9 @@ export class ExcelProcessor {
   }
 
   /**
-   * Create Initial Purchase sheet with Excel formulas
+   * Create Initial Purchase sheet with Excel formulas that reference table columns
    */
-  private static createInitialPurchaseSheet(realizedRows: any[]): XLSX.WorkSheet {
+  private static createInitialPurchaseSheet(realizedRows: any[], realizedRowCount: number): XLSX.WorkSheet {
     // Get unique symbols
     const uniqueSymbols = this.getUniqueSymbols(realizedRows);
     
@@ -70,20 +70,21 @@ export class ExcelProcessor {
     // Add symbols and formulas for each row
     uniqueSymbols.forEach((symbol, index) => {
       const rowNum = index + 2; // Excel rows are 1-indexed, +1 for header
+      const realizedRange = realizedRowCount + 1; // +1 for header
       
       // Column A: Symbol
       ws[`A${rowNum}`] = { v: symbol };
       
       // Column B: First Purchase Date formula
-      // =MINIFS(Realized!$K:$K,Realized!$G:$G,'Initial Purchase'!A2,Realized!$M:$M,"BUY")
+      // Using specific row ranges since we know the data size
       ws[`B${rowNum}`] = {
-        f: `MINIFS(Realized!$K:$K,Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`
+        f: `MINIFS(Realized!$K$2:$K$${realizedRange},Realized!$G$2:$G$${realizedRange},'Initial Purchase'!A${rowNum},Realized!$M$2:$M$${realizedRange},"BUY")`
       };
       
       // Column C: Initial Amount formula
-      // =SUMIFS(Realized!$P:$P,Realized!$K:$K,'Initial Purchase'!B2,Realized!$G:$G,'Initial Purchase'!A2,Realized!$M:$M,"BUY")
+      // Using specific row ranges for SUMIFS
       ws[`C${rowNum}`] = {
-        f: `SUMIFS(Realized!$P:$P,Realized!$K:$K,'Initial Purchase'!B${rowNum},Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`
+        f: `SUMIFS(Realized!$P$2:$P$${realizedRange},Realized!$K$2:$K$${realizedRange},'Initial Purchase'!B${rowNum},Realized!$G$2:$G$${realizedRange},'Initial Purchase'!A${rowNum},Realized!$M$2:$M$${realizedRange},"BUY")`
       };
     });
     
@@ -170,16 +171,33 @@ export class ExcelProcessor {
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
 
-    // Create the Realized sheet
+    // Create the Realized sheet as a table
     const realizedSheet = XLSX.utils.json_to_sheet(vintageData.realizedRows);
+    
+    // Add autofilter to make it a table-like structure
+    if (vintageData.realizedRows.length > 0) {
+      const range = XLSX.utils.decode_range(realizedSheet['!ref'] || 'A1');
+      realizedSheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+    }
+    
     XLSX.utils.book_append_sheet(workbook, realizedSheet, "Realized");
 
-    // Create the Unrealized sheet
+    // Create the Unrealized sheet as a table
     const unrealizedSheet = XLSX.utils.json_to_sheet(vintageData.unrealizedRows);
+    
+    // Add autofilter to make it a table-like structure
+    if (vintageData.unrealizedRows.length > 0) {
+      const range = XLSX.utils.decode_range(unrealizedSheet['!ref'] || 'A1');
+      unrealizedSheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+    }
+    
     XLSX.utils.book_append_sheet(workbook, unrealizedSheet, "Unrealized");
 
     // Create the Initial Purchase sheet with Excel formulas
-    const initialPurchaseSheet = this.createInitialPurchaseSheet(vintageData.realizedRows);
+    const initialPurchaseSheet = this.createInitialPurchaseSheet(
+      vintageData.realizedRows,
+      vintageData.realizedRows.length
+    );
     XLSX.utils.book_append_sheet(workbook, initialPurchaseSheet, "Initial Purchase");
 
     // Generate buffer
