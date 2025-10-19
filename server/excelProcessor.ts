@@ -40,6 +40,77 @@ export class ExcelProcessor {
   }
 
   /**
+   * Get unique symbols from realized data
+   */
+  private static getUniqueSymbols(realizedRows: any[]): string[] {
+    const symbols = new Set<string>();
+    for (const row of realizedRows) {
+      if (row["Symbol"]) {
+        symbols.add(String(row["Symbol"]).trim());
+      }
+    }
+    return Array.from(symbols).sort();
+  }
+
+  /**
+   * Create Initial Purchase sheet with Excel formulas
+   */
+  private static createInitialPurchaseSheet(realizedRows: any[]): XLSX.WorkSheet {
+    // Get unique symbols
+    const uniqueSymbols = this.getUniqueSymbols(realizedRows);
+    
+    // Create the data structure for Initial Purchase sheet
+    const initialPurchaseData: any[] = [];
+    
+    // Add headers
+    const headers = ["Symbol", "First Purchase Date", "Initial Amount"];
+    
+    // For each unique symbol, we'll add formulas to calculate first purchase date and amount
+    uniqueSymbols.forEach((symbol, index) => {
+      const rowNum = index + 2; // +2 because row 1 is headers
+      
+      initialPurchaseData.push({
+        Symbol: symbol,
+        "First Purchase Date": `=IFERROR(MINIFS(Realized!B:B,Realized!A:A,"${symbol}",Realized!C:C,"BUY"),"")`,
+        "Initial Amount": `=IFERROR(SUMIFS(Realized!F:F,Realized!A:A,"${symbol}",Realized!B:B,B${rowNum},Realized!C:C,"BUY"),0)`
+      });
+    });
+
+    // Create worksheet from data
+    const ws = XLSX.utils.json_to_sheet(initialPurchaseData);
+    
+    // Set column widths for better readability
+    const wscols = [
+      { wch: 15 }, // Symbol
+      { wch: 20 }, // First Purchase Date  
+      { wch: 15 }  // Initial Amount
+    ];
+    ws['!cols'] = wscols;
+
+    // Format the date column (column B) and amount column (column C)
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    
+    // Apply formulas to cells (XLSX library will handle the formula syntax)
+    for (let i = 0; i < uniqueSymbols.length; i++) {
+      const rowNum = i + 2;
+      
+      // First Purchase Date formula (column B)
+      const dateCell = XLSX.utils.encode_cell({ r: i + 1, c: 1 });
+      ws[dateCell] = {
+        f: `IFERROR(MINIFS(Realized!B:B,Realized!A:A,"${uniqueSymbols[i]}",Realized!C:C,"BUY"),"")`
+      };
+      
+      // Initial Amount formula (column C)
+      const amountCell = XLSX.utils.encode_cell({ r: i + 1, c: 2 });
+      ws[amountCell] = {
+        f: `IFERROR(SUMIFS(Realized!F:F,Realized!A:A,"${uniqueSymbols[i]}",Realized!B:B,B${rowNum},Realized!C:C,"BUY"),0)`
+      };
+    }
+    
+    return ws;
+  }
+
+  /**
    * Process Excel files and return data organized by vintage
    */
   static processFiles(
@@ -115,6 +186,10 @@ export class ExcelProcessor {
     // Create the Unrealized sheet
     const unrealizedSheet = XLSX.utils.json_to_sheet(vintageData.unrealizedRows);
     XLSX.utils.book_append_sheet(workbook, unrealizedSheet, "Unrealized");
+
+    // Create the Initial Purchase sheet with Excel formulas
+    const initialPurchaseSheet = this.createInitialPurchaseSheet(vintageData.realizedRows);
+    XLSX.utils.book_append_sheet(workbook, initialPurchaseSheet, "Initial Purchase");
 
     // Generate buffer
     const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
