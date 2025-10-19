@@ -36,9 +36,9 @@ This application allows portfolio managers to upload two Excel files (realized a
 ### October 19, 2025 - Added Initial Purchase Sheet
 - Added "Initial Purchase" sheet to generated Excel files
 - Sheet displays unique tickers with first purchase date and initial amount
-- Uses Excel formulas (MINIFS and SUMIFS) wrapped in INDEX to prevent @ symbol
+- Uses Excel formulas (MINIFS and SUMIFS) for auditable calculations
 - Updated UI to reflect 3-sheet output structure
-- Using xlsx (SheetJS) library with INDEX wrapper to prevent implicit intersection
+- Using xlsx (SheetJS) library for Excel file generation
 
 ---
 

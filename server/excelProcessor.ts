@@ -138,16 +138,15 @@ export class ExcelProcessor {
       // Column A: Symbol
       initialPurchaseSheet[`A${rowNum}`] = { v: symbol, t: 's' };
       
-      // Column B: First Purchase Date formula - wrapped in INDEX to prevent @ symbol
-      // INDEX returns a single value, preventing Excel from adding implicit intersection
+      // Column B: First Purchase Date formula
       initialPurchaseSheet[`B${rowNum}`] = {
-        f: `INDEX(MINIFS(Realized!K:K,Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY"),1)`,
+        f: `MINIFS(Realized!K:K,Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY")`,
         t: 'd'
       };
       
-      // Column C: Initial Amount formula - wrapped in INDEX to prevent @ symbol  
+      // Column C: Initial Amount formula
       initialPurchaseSheet[`C${rowNum}`] = {
-        f: `INDEX(SUMIFS(Realized!P:P,Realized!K:K,'Initial Purchase'!B${rowNum},Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY"),1)`,
+        f: `SUMIFS(Realized!P:P,Realized!K:K,'Initial Purchase'!B${rowNum},Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY")`,
         t: 'n',
         z: '0.00'  // Number format for currency
       };
