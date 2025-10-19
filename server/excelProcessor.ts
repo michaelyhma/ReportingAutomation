@@ -63,29 +63,31 @@ export class ExcelProcessor {
     const ws: XLSX.WorkSheet = {};
     
     // Add headers
-    ws['A1'] = { v: 'Symbol' };
-    ws['B1'] = { v: 'First Purchase Date' };
-    ws['C1'] = { v: 'Initial Amount' };
+    ws['A1'] = { v: 'Symbol', t: 's' };
+    ws['B1'] = { v: 'First Purchase Date', t: 's' };
+    ws['C1'] = { v: 'Initial Amount', t: 's' };
     
     // Add symbols and formulas for each row
     uniqueSymbols.forEach((symbol, index) => {
       const rowNum = index + 2; // Excel rows are 1-indexed, +1 for header
       
       // Column A: Symbol
-      ws[`A${rowNum}`] = { v: symbol };
+      ws[`A${rowNum}`] = { v: symbol, t: 's' };
       
-      // Column B: First Purchase Date formula
-      // Using entire column references as requested
+      // Column B: First Purchase Date formula - using legacy formula syntax
+      // Write the formula without implicit intersection
+      const dateFormula = `MINIFS(Realized!$K:$K,Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`;
       ws[`B${rowNum}`] = {
-        f: `MINIFS(Realized!K:K,Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY")`,
-        t: 'n'
+        f: dateFormula,
+        t: 'd'
       };
       
-      // Column C: Initial Amount formula  
-      // Using entire column references
+      // Column C: Initial Amount formula - using legacy formula syntax
+      const amountFormula = `SUMIFS(Realized!$P:$P,Realized!$K:$K,'Initial Purchase'!B${rowNum},Realized!$G:$G,'Initial Purchase'!A${rowNum},Realized!$M:$M,"BUY")`;
       ws[`C${rowNum}`] = {
-        f: `SUMIFS(Realized!P:P,Realized!K:K,'Initial Purchase'!B${rowNum},Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY")`,
-        t: 'n'
+        f: amountFormula,
+        t: 'n',
+        z: '0.00'  // Number format for currency
       };
     });
     
