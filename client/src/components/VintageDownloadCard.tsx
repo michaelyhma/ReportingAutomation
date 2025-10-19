@@ -41,7 +41,7 @@ export function VintageDownloadCard({
 
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="font-mono text-xs">
-              2 Sheets
+              3 Sheets
             </Badge>
             <Badge variant="secondary" className="font-mono text-xs" data-testid={`text-realized-count-${vintage.vintageName}`}>
               {vintage.realizedRowCount} Realized

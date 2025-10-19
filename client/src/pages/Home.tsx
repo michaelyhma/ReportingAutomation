@@ -205,7 +205,13 @@ export default function Home() {
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-chart-2 mt-0.5 flex-shrink-0" />
                     <span>
-                      Output files will contain Excel formulas for auditability
+                      Each output file contains 3 sheets: Realized, Unrealized, and Initial Purchase
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-chart-2 mt-0.5 flex-shrink-0" />
+                    <span>
+                      Initial Purchase sheet uses Excel formulas to calculate first purchase dates and amounts
                     </span>
                   </li>
                 </ul>
