@@ -194,22 +194,29 @@ This application allows portfolio managers to upload two Excel files (realized a
 
 Both files must contain:
 1. **Excel format**: .xlsx or .xls
-2. **Vintage column**: A column titled "Vintage" (case-insensitive)
+2. **Vintage column**: Required in both files
 3. **Data in first sheet**: All data should be in the first worksheet
 4. **Valid Vintage values**: Non-empty strings (e.g., "CQ1", "CQ2", "CQ3")
 
-Example Realized File:
-| Vintage | Position | Action | Shares | Price |
-|---------|----------|--------|--------|-------|
-| CQ1     | AAPL     | BUY    | 100    | 150   |
-| CQ1     | MSFT     | SELL   | 50     | 300   |
-| CQ2     | GOOGL    | BUY    | 75     | 2500  |
+### Column Mappings
 
-Example Unrealized File:
-| Vintage | Position | CurrentValue | Shares |
-|---------|----------|--------------|--------|
-| CQ1     | AAPL     | 16000        | 100    |
-| CQ2     | GOOGL    | 190000       | 75     |
+**Realized Sheet Columns:**
+- **Symbol** - Column G (ticker symbol)
+- **TradeDate** - Column K (date of the trade)
+- **Buy/Sell** - Column M (indicates if position was BUY or SELL)
+- **Quantity** - Column N (positive for BUY, negative for SELL)
+- **Price** - Column O (price per share)
+- **Amount** - Column P (dollar amount: positive for BUY, negative for SELL)
+- **Proceeds** - Column Q (opposite of Amount: negative for BUY, positive for SELL)
+- **Vintage** - Column AB (vintage identifier like CQ1, CQ2, CQ3)
+
+**Unrealized Sheet Columns:**
+- **Symbol** - Column A (ticker symbol)
+- **Vintage** - Column B (vintage identifier)
+- **Date** - Column C (date of the unrealized value)
+- **Net Quantity** - Column D (quantity of shares held)
+- **Mark Price** - Column E (close price for valuation)
+- **Position Value** - Column F (cash value at day close)
 
 ### Output Excel Files
 
