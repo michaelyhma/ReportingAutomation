@@ -124,6 +124,15 @@ export class ExcelProcessor {
 
     // Create the Initial Purchase sheet with Excel formulas
     const initialPurchaseSheet: XLSX.WorkSheet = {};
+
+    const realizedRowCount = vintageData.realizedRows.length;
+    const realizedDataEndRow = Math.max(realizedRowCount + 1, 2);
+    const realizedColRanges = {
+      K: `Realized!$K$2:$K$${realizedDataEndRow}`,
+      G: `Realized!$G$2:$G$${realizedDataEndRow}`,
+      M: `Realized!$M$2:$M$${realizedDataEndRow}`,
+      P: `Realized!$P$2:$P$${realizedDataEndRow}`,
+    } as const;
     
     // Add headers
     initialPurchaseSheet['A1'] = { v: 'Symbol', t: 's' };
@@ -140,13 +149,13 @@ export class ExcelProcessor {
       
       // Column B: First Purchase Date formula
       initialPurchaseSheet[`B${rowNum}`] = {
-        f: `MINIFS(Realized!K:K,Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY")`,
+        f: `MINIFS(${realizedColRanges.K},${realizedColRanges.G},'Initial Purchase'!A${rowNum},${realizedColRanges.M},"BUY")`,
         t: 'd'
       };
-      
+
       // Column C: Initial Amount formula
       initialPurchaseSheet[`C${rowNum}`] = {
-        f: `SUMIFS(Realized!P:P,Realized!K:K,'Initial Purchase'!B${rowNum},Realized!G:G,'Initial Purchase'!A${rowNum},Realized!M:M,"BUY")`,
+        f: `SUMIFS(${realizedColRanges.P},${realizedColRanges.K},'Initial Purchase'!B${rowNum},${realizedColRanges.G},'Initial Purchase'!A${rowNum},${realizedColRanges.M},"BUY")`,
         t: 'n',
         z: '0.00'  // Number format for currency
       };
