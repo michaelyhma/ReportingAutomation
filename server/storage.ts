@@ -1,37 +1,30 @@
-import { type User, type InsertUser } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
+// Storage for processed vintage files
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  storeVintageFile(vintageName: string, buffer: Buffer): Promise<string>;
+  getVintageFile(vintageName: string): Promise<Buffer | undefined>;
+  clearVintageFiles(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private vintageFiles: Map<string, Buffer>;
 
   constructor() {
-    this.users = new Map();
+    this.vintageFiles = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async storeVintageFile(vintageName: string, buffer: Buffer): Promise<string> {
+    this.vintageFiles.set(vintageName, buffer);
+    return vintageName;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async getVintageFile(vintageName: string): Promise<Buffer | undefined> {
+    return this.vintageFiles.get(vintageName);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async clearVintageFiles(): Promise<void> {
+    this.vintageFiles.clear();
   }
 }
 
